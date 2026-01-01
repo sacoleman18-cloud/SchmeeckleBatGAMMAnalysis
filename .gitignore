@@ -1,0 +1,23 @@
+# User data
+data/
+*.csv
+*.wav
+*.txt
+
+# Outputs/logs
+outputs/
+logs/
+
+# R/RStudio
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Credentials
+*.yaml
+.env
