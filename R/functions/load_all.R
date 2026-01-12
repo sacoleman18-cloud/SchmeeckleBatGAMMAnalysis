@@ -7,15 +7,29 @@
 # Call this at the start of every workflow script to load the complete
 # function library.
 #
+# DESIGN GOALS (CODING_STANDARDS-ALIGNED)
+# --------------------------------------
+# - Deterministic: fixed module load order
+# - Defensive: validates required packages and module existence
+# - Auditable: prints what was loaded (and what failed)
+# - Workflow-agnostic: safe to call from Backbone / Production / Exploratory
+#
 # USAGE:
-#   source(here::here("R", "load_all.R"))
+#   source(here::here("R", "functions", "load_all.R"))
 # ==============================================================================
 
 # -------------------------
 # Package Requirements
 # -------------------------
-# Ensure required packages are loaded
-required_packages <- c("here", "dplyr", "readr", "tidyr", "lubridate", "yaml")
+required_packages <- c(
+  "here",
+  "dplyr",
+  "readr",
+  "tidyr",
+  "lubridate",
+  "yaml",
+  "mgcv"
+)
 
 for (pkg in required_packages) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
@@ -34,6 +48,7 @@ suppressPackageStartupMessages({
   library(tidyr)
   library(lubridate)
   library(yaml)
+  library(mgcv)
 })
 
 # -------------------------
@@ -41,7 +56,6 @@ suppressPackageStartupMessages({
 # -------------------------
 message("Loading project functions...")
 
-# Determine functions directory
 functions_dir <- here::here("R", "functions")
 
 if (!dir.exists(functions_dir)) {
@@ -51,16 +65,23 @@ if (!dir.exists(functions_dir)) {
   ))
 }
 
-# Define modules in loading order
-# (core utilities first, then validation, then specialized modules)
+# Define modules in loading order:
+# - core first
+# - validation second
+# - modeling last
+#
+# NOTE:
+# Keep this list explicit (not auto-discovered) to preserve deterministic
+# ordering and avoid accidental sourcing of experimental files.
 modules <- c(
   "core/utilities.R",
   "core/config.R",
-  "validation/validation.R"
+  "validation/validation.R",
+  "modeling/fit_nb_gamm.R",
+  "modeling/extract_habitat_effects.R"
 )
 
-# Source each module
-n_loaded <- 0
+n_loaded <- 0L
 errors <- character(0)
 
 for (module in modules) {
@@ -73,16 +94,13 @@ for (module in modules) {
 
   tryCatch({
     source(module_path, local = FALSE)
-    n_loaded <- n_loaded + 1
+    n_loaded <- n_loaded + 1L
     message(sprintf("  ✓ Loaded: %s", module))
   }, error = function(e) {
     errors <- c(errors, sprintf("Failed to load %s: %s", module, e$message))
   })
 }
 
-# -------------------------
-# Report Loading Status
-# -------------------------
 if (length(errors) > 0) {
   warning(sprintf(
     "Function loading completed with errors:\n%s",

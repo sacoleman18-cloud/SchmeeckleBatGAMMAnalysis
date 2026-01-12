@@ -4,7 +4,7 @@ data/
 *.wav
 *.txt
 
-# Outputs/logs
+# Root-level outputs/logs (generated)
 outputs/
 logs/
 
