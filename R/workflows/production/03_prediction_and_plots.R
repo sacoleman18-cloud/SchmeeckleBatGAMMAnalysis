@@ -320,10 +320,10 @@ fig_habitat <- ggplot(predictions_habitat, aes(x = habitat, y = predicted_calls,
   ) +
   theme_minimal(base_size = 14) +
   theme(
-    plot. title = element_text(face = "bold", size = 16),
+    plot.title = element_text(face = "bold", size = 16),
     plot.subtitle = element_text(color = "gray40"),
     axis.title = element_text(face = "bold"),
-    panel.grid. major. x = element_blank()
+    panel.grid.major.x = element_blank()
   )
 
 message("Habitat effect figure created")
@@ -366,7 +366,7 @@ preds_temporal <- predict(
   model,
   newdata = newdata_temporal,
   type = "link",
-  se. fit = TRUE,
+  se.fit = TRUE,
   exclude = c("s(site)", "s(detector_id)")
 )
 
@@ -398,7 +398,7 @@ fig_temporal <- ggplot(temporal_predictions, aes(x = night_date, y = predicted_c
     plot.title = element_text(face = "bold", size = 16),
     plot.subtitle = element_text(color = "gray40"),
     axis.title = element_text(face = "bold"),
-    axis.text. x = element_text(angle = 45, hjust = 1)
+    axis.text.x = element_text(angle = 45, hjust = 1)
   )
 
 message("Temporal smooth figure created")
@@ -434,7 +434,7 @@ fig_raw_activity <- df_model %>%
   scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
   theme_minimal(base_size = 12) +
   theme(
-    plot. title = element_text(face = "bold", size = 16),
+    plot.title = element_text(face = "bold", size = 16),
     plot.subtitle = element_text(color = "gray40"),
     axis.title = element_text(face = "bold"),
     axis.text.x = element_text(angle = 45, hjust = 1),
@@ -482,7 +482,7 @@ qq_plot <- ggplot(diag_df, aes(sample = residuals)) +
   ) +
   theme_minimal(base_size = 12) +
   theme(
-    plot. title = element_text(face = "bold"),
+    plot.title = element_text(face = "bold"),
     plot.subtitle = element_text(color = "gray40")
   )
 
