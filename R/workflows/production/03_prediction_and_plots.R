@@ -454,8 +454,11 @@ pairwise_comparisons <- pairwise_comparisons %>%
 
 y_axis_max <- max(pairwise_comparisons$y_pos) + bracket_spacing * 1.2
 
+message("\n=== BRACKET POSITIONS ===")
+print(pairwise_comparisons %>% select(comparison_name, y_pos, p_display))
+
+message(sprintf("\n  Y-axis range: 0 to %.2f calls/hour", y_axis_max))
 message(sprintf("  Bracket display ceiling: %.2f calls/hour", display_ceiling))
-message(sprintf("  Y-axis max: %.2f calls/hour", y_axis_max))
 
 log_message("[PRODUCTION] Generated centralized pairwise comparisons with bracket positions",
             log_path = log_path)
@@ -562,7 +565,7 @@ fig_habitat <- ggplot(predictions_habitat,
   scale_x_discrete(labels = HABITAT_DISPLAY) +
   scale_color_manual(values = HABITAT_COLORS, guide = "none") +
   # Y-axis
-  scale_y_continuous(limits = c(0, 4),
+  scale_y_continuous(limits = c(0, y_axis_max),
                      expand = expansion(mult = c(0, 0.05)),
                      breaks = scales::pretty_breaks(n = 6)) +
   # Axis labels
