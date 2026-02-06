@@ -1,5 +1,5 @@
 # ==============================================================================
-# 03_prediction_and_plots. R — PRODUCTION VISUALIZATION (LOCKED)
+# 03_prediction_and_plots.R — PRODUCTION VISUALIZATION (LOCKED)
 # ==============================================================================
 # LAYER:  PRODUCTION
 #
@@ -12,7 +12,7 @@
 # WORKFLOW POSITION
 # -----------------
 #   Previous: R/workflows/production/02_model_nb_gamm.R
-#   Next:      Poster compilation (poster. qmd)
+#   Next:      Poster compilation (poster.qmd)
 #
 # INPUTS
 # ------
@@ -34,7 +34,7 @@
 #
 # PROCESSING STAGES
 # -----------------
-# Stage 3. 1: Setup
+# Stage 3.1: Setup
 # Stage 3.2: Load Model and Data
 # Stage 3.3: Generate Habitat Predictions
 # Stage 3.4: Create Habitat Effect Figure
@@ -59,13 +59,13 @@
 #
 # USAGE
 # -----
-# source(here:: here("R", "workflows", "production", "03_prediction_and_plots.R"))
+# source(here::here("R", "workflows", "production", "03_prediction_and_plots.R"))
 #
 # MAINTAINER NOTES
 # ----------------
 # - Predictions use mean recording hours (~13 hrs) for interpretable scale
 # - Temporal smooth plotted on original date scale for poster clarity
-# - Diagnostic panel uses mgcv::gam. check() internals
+# - Diagnostic panel uses mgcv::gam.check() internals
 #
 # CHANGELOG
 # ---------
@@ -82,7 +82,7 @@ here::i_am("R/workflows/production/03_prediction_and_plots.R")
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 
 message("\n╔══════════════════════════════════════════════════════════════════════════════╗")
-message("║              WORKFLOW 03: PREDICTION AND VISUALIZATION                      ��")
+message("║              WORKFLOW 03: PREDICTION AND VISUALIZATION                      ║")
 message("╚══════════════════════════════════════════════════════════════════════════════╝\n")
 
 
@@ -100,14 +100,14 @@ library(tidyverse)
 library(here)
 library(mgcv)
 
-source(here:: here("R", "functions", "load_all. R"))
+source(here::here("R", "functions", "load_all.R"))
 
 # Initialize logging
-log_path <- here::here("logs", "visualization_runs. log")
+log_path <- here::here("logs", "visualization_runs.log")
 initialize_pipeline_log(
   log_path = log_path,
   workflow_name = "03_prediction_and_plots",
-  script_path = here::here("R", "workflows", "production", "03_prediction_and_plots. R")
+  script_path = here::here("R", "workflows", "production", "03_prediction_and_plots.R")
 )
 
 log_message("[PRODUCTION] === WORKFLOW 03 START ===", log_path = log_path)
@@ -124,9 +124,18 @@ dir.create(res_tables, recursive = TRUE, showWarnings = FALSE)
 # Define color palette (locked for poster)
 # -------------------------
 HABITAT_COLORS <- c(
-  "Interior" = "#2E7D32",
-  "Edge" = "#1565C0",
-  "Open" = "#F9A825"
+  "Interior" = "#ffab0b",
+  "Edge" = "#52e900",
+  "Open" = "#af04e8"
+)
+
+# -------------------------
+# Display labels for poster figures (canonical naming)
+# -------------------------
+HABITAT_DISPLAY <- c(
+  "Interior" = "Interior Forest",
+  "Edge" = "Edge Habitat",
+  "Open" = "Open Habitat"
 )
 
 # -------------------------
@@ -135,6 +144,24 @@ HABITAT_COLORS <- c(
 FIG_WIDTH <- 8
 FIG_HEIGHT <- 6
 FIG_DPI <- 300
+
+# -------------------------
+# Reusable poster theme (48x41 poster baseline)
+# -------------------------
+POSTER_THEME <- theme_minimal(base_size = 16) +
+  theme(
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(face = "bold", size = 18),
+    axis.text = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.caption = element_text(size = 11, color = "gray40", hjust = 0.5,
+                                margin = margin(t = 10)),
+    plot.margin = margin(10, 10, 10, 10)
+  )
 
 message("Setup complete")
 message(sprintf("  Output directory: %s", res_figs))
@@ -155,11 +182,11 @@ message("Loading fitted model and backbone data...")
 # -------------------------
 # Load fitted model
 # -------------------------
-model_path <- here:: here("outputs", "production", "models", "nb_gamm_habitat_reml_v1.rds")
+model_path <- here::here("outputs", "production", "models", "nb_gamm_habitat_reml_v1.rds")
 
 if (!file.exists(model_path)) {
   stop(sprintf(
-    "Model file not found: %s\n  Fix:  Run Workflow 02 first to fit the canonical model",
+    "Model file not found: %s\n  Fix: Run Workflow 02 first to fit the canonical model",
     model_path
   ))
 }
@@ -173,7 +200,7 @@ backbone_path <- here::here("outputs", "data_backbone", "calls_per_night_clean.r
 
 if (!file.exists(backbone_path)) {
   stop(sprintf(
-    "Backbone file not found: %s\n  Fix:  Run Workflow 01 first",
+    "Backbone file not found: %s\n  Fix: Run Workflow 01 first",
     backbone_path
   ))
 }
@@ -181,25 +208,11 @@ if (!file.exists(backbone_path)) {
 df_backbone <- readRDS(backbone_path)
 
 # -------------------------
-# Load habitat effects table
-# -------------------------
-effects_path <- here:: here("results", "production", "tables", "habitat_effects_v1.csv")
-
-if (!file.exists(effects_path)) {
-  stop(sprintf(
-    "Habitat effects table not found:  %s\n  Fix: Run Workflow 02 first",
-    effects_path
-  ))
-}
-
-habitat_effects <- readr::read_csv(effects_path, show_col_types = FALSE)
-
-# -------------------------
 # Prepare modeling data (same filter as Workflow 02)
 # -------------------------
 df_model <- df_backbone %>%
-  filter(! is.na(recording_hours) & recording_hours > 0) %>%
-  filter(! is.na(habitat) & ! is.na(site) & !is.na(detector_id)) %>%
+  filter(!is.na(recording_hours) & recording_hours > 0) %>%
+  filter(!is.na(habitat) & !is.na(site) & !is.na(detector_id)) %>%
   filter(night_class != "Dead") %>%
   mutate(
     habitat = factor(habitat, levels = c("Interior", "Edge", "Open")),
@@ -213,7 +226,7 @@ night_center <- mean(as.numeric(df_model$night))
 night_scale <- sd(as.numeric(df_model$night))
 
 message("Model and data loaded")
-message(sprintf("  Model AIC: %. 2f", AIC(model)))
+message(sprintf("  Model AIC: %.2f", AIC(model)))
 message(sprintf("  Backbone rows: %d", nrow(df_backbone)))
 message(sprintf("  Modeling rows: %d", nrow(df_model)))
 
@@ -256,13 +269,13 @@ newdata_habitat <- tibble(
 
 # -------------------------
 # Generate predictions with SE
-# exclude. terms excludes random effects for population-level predictions
+# exclude.terms excludes random effects for population-level predictions
 # -------------------------
 preds <- predict(
   model,
   newdata = newdata_habitat,
   type = "link",
-  se. fit = TRUE,
+  se.fit = TRUE,
   exclude = c("s(site)", "s(detector_id)")
 )
 
@@ -300,36 +313,266 @@ message("└──────────────────────�
 message("Creating habitat effect figure...")
 
 # -------------------------
-# Predicted activity +/- CI by habitat
+# Calculate sample sizes per habitat for annotation
 # -------------------------
-fig_habitat <- ggplot(predictions_habitat, aes(x = habitat, y = predicted_calls, fill = habitat)) +
-  geom_col(width = 0.7, alpha = 0.8) +
-  geom_errorbar(
-    aes(ymin = ci_low, ymax = ci_high),
-    width = 0.2,
-    linewidth = 0.8,
-    color = "black"
-  ) +
-  scale_fill_manual(values = HABITAT_COLORS, guide = "none") +
-  labs(
-    title = "Predicted Bat Activity by Habitat Type",
-    subtitle = sprintf("Model predictions at mean effort (%.1f hrs/night)", mean_hours),
-    x = "Habitat",
-    y = "Predicted Calls per Night",
-    caption = "Error bars show 95% confidence intervals\nRandom effects excluded for population-level inference"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(face = "bold", size = 16),
-    plot.subtitle = element_text(color = "gray40"),
-    axis.title = element_text(face = "bold"),
-    panel.grid.major.x = element_blank()
+sample_sizes <- df_model %>%
+  group_by(habitat) %>%
+  summarise(
+    n_nights = n(),
+    n_detectors = n_distinct(detector_id),
+    .groups = "drop"
+  ) %>%
+  mutate(label = sprintf("n=%d nights\n%d detectors", n_nights, n_detectors))
+
+# -------------------------
+# Load habitat effects from Interior reference model
+# -------------------------
+habitat_effects_interior <- read_csv(
+  here::here("results", "production", "tables", "habitat_effects_v1.csv"),
+  show_col_types = FALSE
+)
+
+message("\n=== HABITAT EFFECTS (Interior reference) ===")
+print(habitat_effects_interior)
+
+# -------------------------
+# Refit model with Edge as reference to get Edge vs Open comparison
+# -------------------------
+message("\n=== Refitting model with Edge reference for Edge vs Open comparison ===")
+
+df_model_edge_ref <- df_model %>%
+  mutate(habitat = factor(habitat, levels = c("Edge", "Interior", "Open")))
+
+model_edge_ref <- fit_nb_gamm(df_model_edge_ref, smooth_k = 7, method = "REML", quiet = TRUE)
+habitat_effects_edge <- extract_habitat_effects(model_edge_ref, reference = "Edge")
+
+message("=== HABITAT EFFECTS (Edge reference) ===")
+print(habitat_effects_edge)
+
+# -------------------------
+# Combine all pairwise comparisons
+# -------------------------
+all_comparisons <- bind_rows(
+  # From Interior reference: Interior vs Edge, Interior vs Open
+  habitat_effects_interior %>%
+    mutate(
+      comparison_name = case_when(
+        grepl("Edge", term) ~ "Interior vs Edge",
+        grepl("Open", term) ~ "Interior vs Open",
+        TRUE ~ NA_character_
+      ),
+      x_start = 1,  # Interior
+      x_end = case_when(
+        grepl("Edge", term) ~ 2,  # Edge
+        grepl("Open", term) ~ 3,  # Open
+        TRUE ~ NA_real_
+      )
+    ),
+  # From Edge reference: Edge vs Open (only)
+  habitat_effects_edge %>%
+    filter(grepl("Open", term)) %>%
+    mutate(
+      comparison_name = "Edge vs Open",
+      x_start = 2,  # Edge
+      x_end = 3     # Open
+    )
+) %>%
+  filter(!is.na(comparison_name)) %>%
+  mutate(
+    # Combine p-value with significance marker
+    p_display = case_when(
+      p_value < 0.001 ~ sprintf("p < 0.001 ***"),
+      p_value < 0.01 ~ sprintf("p = %.3f **", p_value),
+      p_value < 0.05 ~ sprintf("p = %.3f *", p_value),
+      TRUE ~ sprintf("p = %.3f", p_value)
+    ),
+    sig_label = case_when(
+      p_value < 0.001 ~ "***",
+      p_value < 0.01 ~ "**",
+      p_value < 0.05 ~ "*",
+      TRUE ~ "ns"
+    )
   )
 
-message("Habitat effect figure created")
+message("\n=== ALL PAIRWISE COMPARISONS ===")
+print(all_comparisons %>% select(comparison_name, irr, p_value, sig_label, x_start, x_end))
+
+# -------------------------
+# Calculate rates for raw data
+# -------------------------
+df_model_rates <- df_model %>%
+  mutate(rate_per_hour = calls_per_night / recording_hours)
+
+# -------------------------
+# Detect outliers for RAW DATA capping (for visual clarity)
+# -------------------------
+raw_data_cap <- 8  # Cap raw data display at 8 calls/hour for visual clarity
+outlier_count <- df_model_rates %>%
+  filter(rate_per_hour > raw_data_cap) %>%
+  nrow()
+outlier_max <- max(df_model_rates$rate_per_hour)
+
+message(sprintf("\n  Raw data display capped at %.1f calls/hour", raw_data_cap))
+if (outlier_count > 0) {
+  message(sprintf("  %d outlier(s) detected (max: %.1f calls/hour)",
+                  outlier_count, outlier_max))
+}
+
+# -------------------------
+# Calculate bracket y-positions based on actual prediction data
+# -------------------------
+max_prediction_rate <- max(predictions_habitat$rate_ci_high)
+message(sprintf("  Max prediction rate (CI high): %.2f calls/hour", max_prediction_rate))
+
+# Use the HIGHER of: prediction-based limit OR raw data cap
+display_ceiling <- max(raw_data_cap, max_prediction_rate * 1.5)
+
+bracket_base <- display_ceiling * 0.75  # Position brackets at 75% of ceiling
+bracket_spacing <- display_ceiling * 0.08  # Space between stacked brackets
+
+# Assign bracket positions (stack from bottom to top)
+pval_annotations <- all_comparisons %>%
+  arrange(x_end, x_start) %>%  # Sort to control stacking order
+  mutate(
+    y_pos = bracket_base + (row_number() - 1) * bracket_spacing
+  )
+
+message("\n=== BRACKET POSITIONS ===")
+print(pval_annotations %>% select(comparison_name, y_pos, p_display))
+
+# Calculate final y-axis upper limit
+y_axis_max <- max(pval_annotations$y_pos) + bracket_spacing * 1.2  # Extra room above top bracket
+
+message(sprintf("\n  Y-axis range: 0 to %.2f calls/hour", y_axis_max))
+message(sprintf("  Display ceiling (for brackets): %.2f calls/hour", display_ceiling))
+
+# -------------------------
+# Predicted activity +/- CI by habitat (RATES)
+# -------------------------
+fig_habitat <- ggplot(predictions_habitat,
+                      aes(x = habitat, y = predicted_rate, color = habitat)) +
+  # Raw data overlay - cap outliers for visual clarity
+  geom_jitter(data = df_model_rates %>%
+                mutate(rate_capped = pmin(rate_per_hour, raw_data_cap)),
+              aes(y = rate_capped),
+              width = 0.2, alpha = 0.55, size = 1.5, shape = 16,
+              show.legend = FALSE) +
+  # Point estimates for predictions
+  geom_point(size = 5, show.legend = FALSE) +
+  # 95% CI error bars (rate scale)
+  geom_errorbar(aes(ymin = rate_ci_low, ymax = rate_ci_high),
+                width = 0.15, linewidth = 1.2) +
+  # P-value significance brackets for all three comparisons
+  geom_segment(data = pval_annotations,
+               aes(x = x_start, xend = x_end, y = y_pos, yend = y_pos),
+               inherit.aes = FALSE, linewidth = 0.8, color = "black") +
+  geom_segment(data = pval_annotations,
+               aes(x = x_start, xend = x_start,
+                   y = y_pos, yend = y_pos - bracket_spacing * 0.15),
+               inherit.aes = FALSE, linewidth = 0.8, color = "black") +
+  geom_segment(data = pval_annotations,
+               aes(x = x_end, xend = x_end,
+                   y = y_pos, yend = y_pos - bracket_spacing * 0.15),
+               inherit.aes = FALSE, linewidth = 0.8, color = "black") +
+  geom_text(data = pval_annotations,
+            aes(x = (x_start + x_end) / 2,
+                y = y_pos + bracket_spacing * 0.45,
+                label = p_display),
+            inherit.aes = FALSE, size = 4.5, color = "black", fontface = "bold") +
+  # Display labels for x-axis
+  scale_x_discrete(labels = HABITAT_DISPLAY) +
+  # Use solid colors for points, no legend
+  scale_color_manual(values = HABITAT_COLORS, guide = "none") +
+  # Set y-axis limits
+  scale_y_continuous(limits = c(0, 4),
+                     expand = expansion(mult = c(0, 0.05)),
+                     breaks = scales::pretty_breaks(n = 6)) +
+  # Axis labels
+  labs(
+    x = "Habitat Type",
+    y = "Predicted Calls per Hour",
+  ) +
+  POSTER_THEME
+
+res88 <- fig_habitat
+res88
+message("\nHabitat effect figure created")
 
 log_message("[PRODUCTION] [Stage 3.4] Created habitat effect figure", log_path = log_path)
 
+
+# -------------------------
+# Create simplified IRR figure (log scale)
+# -------------------------
+
+plot_data <- all_comparisons %>%
+  mutate(
+    comparison = factor(
+      comparison_name,
+      levels = c(
+        "Interior vs Edge",
+        "Interior vs Open",
+        "Edge vs Open"
+      )
+    )
+  )
+
+fig_habitat <- ggplot(
+  plot_data,
+  aes(x = comparison, y = irr)
+) +
+
+  # Null effect line (IRR = 1)
+  geom_hline(
+    yintercept = 1,
+    linetype = "dashed",
+    color = "gray40",
+    linewidth = 0.8
+  ) +
+
+  # IRR + 95% CI
+  geom_pointrange(
+    aes(ymin = ci_low, ymax = ci_high),
+    size = 1.2
+  ) +
+
+  # Optional p-value labels
+  geom_text(
+    aes(
+      y = ci_high * 1.15,
+      label = p_display
+    ),
+    size = 4.5,
+    fontface = "bold"
+  ) +
+
+  # Log scale for symmetry
+  scale_y_log10() +
+
+  labs(
+    x = "Habitat Comparison",
+    y = "Incidence Rate Ratio (log scale)"
+  ) +
+
+  POSTER_THEME +
+
+  theme(
+    axis.text.x = element_text(
+      angle = 15,
+      hjust = 1,
+      face = "bold"
+    )
+  )
+
+res88 <- fig_habitat
+res88
+
+message("\nHabitat effect figure created (log-scale IRR)")
+
+log_message(
+  "[PRODUCTION] [Stage 3.4] Created simplified habitat effect figure",
+  log_path = log_path
+)
 
 # ------------------------------------------------------------------------------
 # STAGE 3.5: CREATE TEMPORAL SMOOTH FIGURE
@@ -340,8 +583,9 @@ message("│           STAGE 3.5: Create Temporal Smooth Figure             │"
 message("└────────────────────────────────────────────────────────────────┘\n")
 
 message("Creating temporal smooth figure...")
+
 # -------------------------
-# Generate temporal predictions across study period
+# Generate temporal predictions across study period for ALL habitats
 # -------------------------
 night_seq_scaled <- seq(
   min(df_model$night_scaled),
@@ -352,16 +596,19 @@ night_seq_scaled <- seq(
 # Back-transform to actual dates for plotting
 night_seq_dates <- as.Date(night_seq_scaled * night_scale + night_center, origin = "1970-01-01")
 
-newdata_temporal <- tibble(
+# Create prediction grid for all three habitats
+newdata_temporal <- expand_grid(
   night_scaled = night_seq_scaled,
-  night_date = night_seq_dates,
-  habitat = factor("Interior", levels = c("Interior", "Edge", "Open")),
-  recording_hours = mean_hours,
-  site = factor(ref_site, levels = levels(df_model$site)),
-  detector_id = factor(ref_detector, levels = levels(df_model$detector_id))
-)
+  habitat = factor(c("Interior", "Edge", "Open"), levels = c("Interior", "Edge", "Open"))
+) %>%
+  mutate(
+    night_date = as.Date(night_scaled * night_scale + night_center, origin = "1970-01-01"),
+    recording_hours = mean_hours,
+    site = factor(ref_site, levels = levels(df_model$site)),
+    detector_id = factor(ref_detector, levels = levels(df_model$detector_id))
+  )
 
-# Predict temporal trend (excluding habitat and random effects to show pure time trend)
+# Predict temporal trend (excluding random effects to show population-level trends)
 preds_temporal <- predict(
   model,
   newdata = newdata_temporal,
@@ -374,77 +621,202 @@ temporal_predictions <- newdata_temporal %>%
   mutate(
     fit_link = preds_temporal$fit,
     se_link = preds_temporal$se.fit,
-    predicted_calls = exp(fit_link),
-    ci_low = exp(fit_link - 1.96 * se_link),
-    ci_high = exp(fit_link + 1.96 * se_link)
+    # Convert to calls per hour (response scale / offset)
+    predicted_rate = exp(fit_link) / recording_hours,
+    rate_ci_low = exp(fit_link - 1.96 * se_link) / recording_hours,
+    rate_ci_high = exp(fit_link + 1.96 * se_link) / recording_hours
   )
 
+message(sprintf("  Temporal predictions generated (n=%d points per habitat)",
+                nrow(temporal_predictions) / 3))
+message(sprintf("  Date range: %s to %s",
+                min(temporal_predictions$night_date),
+                max(temporal_predictions$night_date)))
+
+# Print rate ranges by habitat
+for (hab in c("Interior", "Edge", "Open")) {
+  hab_data <- temporal_predictions %>% filter(habitat == hab)
+  message(sprintf("  %s rate range: %.2f to %.2f calls/hour",
+                  hab,
+                  min(hab_data$predicted_rate),
+                  max(hab_data$predicted_rate)))
+}
+
 # -------------------------
-# Create temporal smooth figure
+# Cap extreme CIs for temporal predictions (same approach as Stage 3.6)
 # -------------------------
-fig_temporal <- ggplot(temporal_predictions, aes(x = night_date, y = predicted_calls)) +
-  geom_ribbon(aes(ymin = ci_low, ymax = ci_high), alpha = 0.3, fill = "#1565C0") +
-  geom_line(linewidth = 1.2, color = "#1565C0") +
-  labs(
-    title = "Seasonal Trend in Bat Activity",
-    subtitle = "Penalized smooth s(night_scaled, k = 7)",
-    x = "Date",
-    y = "Predicted Calls per Night",
-    caption = sprintf("Predictions at Interior habitat, %. 1f hrs effort\n95%% confidence band shown", mean_hours)
-  ) +
+ci_caps_temporal <- df_model %>%
+  mutate(rate_per_hour = calls_per_night / recording_hours) %>%
+  group_by(habitat) %>%
+  summarise(
+    cap = quantile(rate_per_hour, 0.95, na.rm = TRUE) * 1.5,
+    .groups = "drop"
+  )
+
+temporal_predictions <- temporal_predictions %>%
+  left_join(ci_caps_temporal, by = "habitat") %>%
+  mutate(
+    rate_ci_high_capped = pmin(rate_ci_high, cap),
+    ci_capped = rate_ci_high > cap
+  )
+
+n_capped_temporal <- temporal_predictions %>%
+  group_by(habitat) %>%
+  summarise(n_capped = sum(ci_capped), .groups = "drop")
+
+message("\n=== Temporal CI Capping ===")
+print(n_capped_temporal)
+
+# -------------------------
+# Create temporal smooth figure with all habitats
+# -------------------------
+fig_temporal <- ggplot(temporal_predictions, aes(x = night_date, y = predicted_rate,
+                                                 color = habitat, fill = habitat)) +
+  # 95% CI ribbons by habitat (capped for visual clarity)
+  geom_ribbon(aes(ymin = rate_ci_low, ymax = rate_ci_high),
+              alpha = 0.15, linewidth = 0.3) +
+  # Temporal smooth lines by habitat
+  geom_line(linewidth = 1.3) +
+  # Use habitat display labels in legend
+  scale_color_manual(values = HABITAT_COLORS, labels = HABITAT_DISPLAY, name = "Habitat") +
+  scale_fill_manual(values = HABITAT_COLORS, labels = HABITAT_DISPLAY, name = "Habitat") +
+  # X-axis: dates with weekly breaks
   scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
-  theme_minimal(base_size = 14) +
+  # Y-axis: start at 0, data-driven upper limit
+  scale_y_continuous(limits = c(0, 10),
+                     expand = expansion(mult = c(0, 0.05)),
+                     breaks = scales::pretty_breaks(n = 6)) +
+  # Axis labels
+  labs(
+    x = "Date",
+    y = "Predicted Calls per Hour",
+  ) +
+  POSTER_THEME +
   theme(
-    plot.title = element_text(face = "bold", size = 16),
-    plot.subtitle = element_text(color = "gray40"),
-    axis.title = element_text(face = "bold"),
-    axis.text.x = element_text(angle = 45, hjust = 1)
+    legend.position = "top",
+    legend.title = element_text(face = "bold", size = 16),
+    legend.text = element_text(size = 14),
+    legend.key.size = unit(1.5, "lines")
   )
 
+res1 <- fig_temporal
+res1
 message("Temporal smooth figure created")
 
 log_message("[PRODUCTION] [Stage 3.5] Created temporal smooth figure", log_path = log_path)
 
 
 # ------------------------------------------------------------------------------
-# STAGE 3.6: CREATE RAW ACTIVITY FIGURE
+# STAGE 3.6: CREATE RAW ACTIVITY FIGURE (UNCAPPED CIs)
 # ------------------------------------------------------------------------------
 
 message("\n┌────────────────────────────────────────────────────────────────┐")
 message("│           STAGE 3.6: Create Raw Activity Figure                │")
 message("└────────────────────────────────────────────────────────────────┘\n")
 
-message("Creating raw activity by habitat figure...")
+message("Creating raw activity by habitat figure with GAMM predictions...")
 
 # -------------------------
-# Raw calls per night by habitat (faceted)
+# Prediction grid across study period
 # -------------------------
-fig_raw_activity <- df_model %>%
-  ggplot(aes(x = night, y = calls_per_night, color = habitat)) +
-  geom_point(alpha = 0.6, size = 2) +
-  geom_smooth(method = "loess", se = FALSE, linewidth = 1, span = 0.5) +
-  facet_wrap(~habitat, ncol = 1, scales = "free_y") +
-  scale_color_manual(values = HABITAT_COLORS, guide = "none") +
-  labs(
-    title = "Raw Bat Activity by Habitat Type",
-    subtitle = "Calls per night with LOESS smoother",
-    x = "Date",
-    y = "Calls per Night"
-  ) +
-  scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
-  theme_minimal(base_size = 12) +
-  theme(
-    plot.title = element_text(face = "bold", size = 16),
-    plot.subtitle = element_text(color = "gray40"),
-    axis.title = element_text(face = "bold"),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    strip.text = element_text(face = "bold", size = 12)
+night_seq_scaled <- seq(
+  min(df_model$night_scaled, na.rm = TRUE),
+  max(df_model$night_scaled, na.rm = TRUE),
+  length.out = 150
+)
+
+newdata_raw_activity <- expand_grid(
+  night_scaled = night_seq_scaled,
+  habitat = factor(c("Interior", "Edge", "Open"), levels = c("Interior", "Edge", "Open"))
+) %>%
+  mutate(
+    night = as.Date(night_scaled * night_scale + night_center, origin = "1970-01-01"),
+    recording_hours = mean_hours,
+    site = factor(ref_site, levels = levels(df_model$site)),
+    detector_id = factor(ref_detector, levels = levels(df_model$detector_id))
   )
 
+# -------------------------
+# GAMM predictions (exclude random effects)
+# -------------------------
+preds_raw <- predict(
+  model,
+  newdata = newdata_raw_activity,
+  type = "link",
+  se.fit = TRUE,
+  exclude = c("s(site)", "s(detector_id)")
+)
+
+model_predictions <- newdata_raw_activity %>%
+  mutate(
+    fit_link = preds_raw$fit,
+    se_link = preds_raw$se.fit,
+    # Calls per night
+    predicted_calls = exp(fit_link),
+    ci_low_calls = exp(fit_link - 1.96 * se_link),
+    ci_high_calls = exp(fit_link + 1.96 * se_link),
+    # Calls per hour
+    predicted_rate = predicted_calls / recording_hours,
+    ci_low_rate = ci_low_calls / recording_hours,
+    ci_high_rate = ci_high_calls / recording_hours
+  )
+
+# -------------------------
+# Raw data with rates
+# -------------------------
+df_model_with_rates <- df_model %>%
+  mutate(rate_per_hour = calls_per_night / recording_hours)
+
+# -------------------------
+# Create figure with log10 y-axis
+# -------------------------
+fig_raw_activity <- ggplot() +
+  geom_ribbon(
+    data = model_predictions,
+    aes(x = night, ymin = ci_low_rate, ymax = ci_high_rate, fill = habitat),
+    alpha = 0.15, linewidth = 0.3
+  ) +
+  geom_point(
+    data = df_model_with_rates,
+    aes(x = night, y = rate_per_hour, color = habitat),
+    alpha = 0.35, size = 1.5
+  ) +
+  geom_line(
+    data = model_predictions,
+    aes(x = night, y = predicted_rate, color = habitat),
+    linewidth = 1.3
+  ) +
+  facet_wrap(
+    ~habitat,
+    ncol = 1,
+    scales = "free_y",
+    labeller = labeller(habitat = HABITAT_DISPLAY)
+  ) +
+  scale_color_manual(values = HABITAT_COLORS, guide = "none") +
+  scale_fill_manual(values = HABITAT_COLORS, guide = "none") +
+  scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
+  scale_y_log10(
+    labels = scales::comma_format(),      # readable tick labels
+    breaks = scales::log_breaks(n = 10)  # sensible log scale ticks
+  ) +
+  labs(
+    x = "Date",
+    y = "Calls per Hour (log scale)"
+  ) +
+  POSTER_THEME +
+  theme(
+    strip.text = element_text(face = "bold", size = 16)
+  )
+
+res3 <- fig_raw_activity
+res3
+message("Raw activity figure (log10) created")
+log_message("[PRODUCTION] [Stage 3.6] Created raw activity figure (log10)", log_path = log_path)
+
+res3 <- fig_raw_activity
+res3
 message("Raw activity figure created")
-
 log_message("[PRODUCTION] [Stage 3.6] Created raw activity figure", log_path = log_path)
-
 
 # ------------------------------------------------------------------------------
 # STAGE 3.7: CREATE DIAGNOSTIC PANEL
@@ -544,7 +916,7 @@ obs_fitted_plot <- ggplot(diag_df, aes(x = fitted, y = observed)) +
 # -------------------------
 # Combine into panel using patchwork
 # -------------------------
-if (! requireNamespace("patchwork", quietly = TRUE)) {
+if (!requireNamespace("patchwork", quietly = TRUE)) {
   message("  Note: Install 'patchwork' package for combined diagnostic panel")
   message("  Saving individual diagnostic plots instead...")
   fig_diagnostic <- NULL
@@ -572,7 +944,7 @@ log_message("[PRODUCTION] [Stage 3.7] Created diagnostic panel", log_path = log_
 # ------------------------------------------------------------------------------
 
 message("\n┌────────────────────────────────────────────────────────────────┐")
-message("│                 STAGE 3.8: Write Outputs                        │")
+message("│                 STAGE 3.8: Write Outputs                       │")
 message("└────────────────────────────────────────────────────────────────┘\n")
 
 message("Saving figures and tables...")
@@ -605,9 +977,9 @@ ggsave(
   height = 10,
   dpi = FIG_DPI
 )
-message("  Saved:  raw_activity_by_habitat_v1.png")
+message("  Saved: raw_activity_by_habitat_v1.png")
 
-if (! is.null(fig_diagnostic)) {
+if (!is.null(fig_diagnostic)) {
   ggsave(
     filename = here::here(res_figs, "diagnostic_panel_v1.png"),
     plot = fig_diagnostic,
@@ -619,10 +991,10 @@ if (! is.null(fig_diagnostic)) {
 } else {
   # Save individual diagnostic plots
   ggsave(here::here(res_figs, "diag_qq_v1.png"), qq_plot, width = 6, height = 5, dpi = FIG_DPI)
-  ggsave(here:: here(res_figs, "diag_resid_fitted_v1.png"), resid_fitted_plot, width = 6, height = 5, dpi = FIG_DPI)
-  ggsave(here:: here(res_figs, "diag_resid_hist_v1.png"), resid_hist, width = 6, height = 5, dpi = FIG_DPI)
+  ggsave(here::here(res_figs, "diag_resid_fitted_v1.png"), resid_fitted_plot, width = 6, height = 5, dpi = FIG_DPI)
+  ggsave(here::here(res_figs, "diag_resid_hist_v1.png"), resid_hist, width = 6, height = 5, dpi = FIG_DPI)
   ggsave(here::here(res_figs, "diag_obs_fitted_v1.png"), obs_fitted_plot, width = 6, height = 5, dpi = FIG_DPI)
-  message("  Saved:  individual diagnostic plots (diag_*. png)")
+  message("  Saved: individual diagnostic plots (diag_*.png)")
 }
 
 # -------------------------
@@ -666,11 +1038,11 @@ message("╚══════════════════════�
 message("--- Workflow Summary ---")
 message(sprintf("  Model: NB GAMM (AIC = %.2f)", AIC(model)))
 message(sprintf("  Deviance explained: %.1f%%", summary(model)$dev.expl * 100))
-message(sprintf("  Predictions at:  %. 1f hrs effort (mean)", mean_hours))
+message(sprintf("  Predictions at: %.1f hrs effort (mean)", mean_hours))
 
 message("\n  Habitat Predictions (calls/night):")
 for (i in seq_len(nrow(predictions_habitat))) {
-  message(sprintf("    %s: %. 1f [%. 1f, %.1f]",
+  message(sprintf("    %s: %.1f [%.1f, %.1f]",
                   predictions_habitat$habitat[i],
                   predictions_habitat$predicted_calls[i],
                   predictions_habitat$ci_low[i],
@@ -694,4 +1066,4 @@ log_message("[PRODUCTION] === WORKFLOW 03 COMPLETE ===", log_path = log_path)
 # -------------------------
 habitat_predictions <- predictions_habitat
 temporal_predictions_df <- temporal_predictions
-message("Objects available:  habitat_predictions, temporal_predictions_df")
+message("Objects available: habitat_predictions, temporal_predictions_df")
