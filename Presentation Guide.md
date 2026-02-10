@@ -193,6 +193,7 @@ calls_per_night ~ habitat +
 - Offset assumes linear duration-activity scaling
 - Partial nights add uncertainty but reflect real sampling
 - Habitat categories based on deployment design, not field-verified vegetation structure
+- Late-season timing and detector malfunctions reduced activity and data completeness
     
 
 ---
@@ -208,17 +209,24 @@ calls_per_night ~ habitat +
 ### 9.1 Headline result
 
 - **Main point:** The analysis is not just about modeling overall activity; the core objective is the **pairwise comparison** among **interior, edge, and open** placements.
-- **Top-line finding:** **Open vs Interior is higher and significant** (IRR = 5.37, 95% CI: 1.21–23.84, p = 0.027).
-- **Secondary findings:** **Edge vs Interior is higher but not significant** (IRR = 1.75, 95% CI: 0.39–7.81, p = 0.463), and **Open vs Edge is higher but not significant** (IRR = 3.07, 95% CI: 0.68–13.80, p = 0.143).
+- **Top-line finding:** **Open vs Interior is higher and significant** (p = 0.027; IRR = 5.37, 95% CI: 1.21–23.84).
+- **Secondary findings:** **Edge vs Interior is higher but not significant** (p = 0.463; IRR = 1.75, 95% CI: 0.39–7.81), and **Open vs Edge is higher but not significant** (p = 0.143; IRR = 3.07, 95% CI: 0.68–13.80).
+
+Quick definitions:
+- **p-value (p):** If p < 0.05, we treat the comparison as statistically significant.
+- **IRR:** Incidence Rate Ratio; values above 1 mean higher activity in the first habitat.
+- **95% CI:** Plausible range for the IRR; **wider CIs mean more variability and less confidence**, narrower CIs mean more precision.
+- **How to read variability:** IRR shows the size and direction of the effect, while CI width shows how certain that estimate is.
 
 ### 9.2 Effect size in plain language
 
-After accounting for recording effort and seasonal timing, **open** recorded **437% more calls per hour** than **interior** (model-estimated).
+The habitat effects plot shows **open** consistently above **interior**, and the **open confidence interval does not overlap the interior trend line**. The p-value brackets on the habitat effects plot match this (Open vs Interior, p = 0.027), while the other two comparisons overlap.
 
 ### 9.3 Model-based certainty
 
 - Pairwise results use model-based estimates with 95% confidence intervals.
 - Differences account for uneven effort and seasonal change.
+- The IRR and percent differences are model outputs that support the p-values, even though they are not shown on the poster.
 
 ---
 
@@ -226,9 +234,9 @@ After accounting for recording effort and seasonal timing, **open** recorded **4
 
 |Comparison|Direction|Significant?|Plain-language translation|
 |---|---|---|---|
-|Edge vs Interior|Edge higher|No|Edge is 75% higher calls/hr than Interior (IRR 1.75, p = 0.463)|
-|Edge vs Open|Open higher|No|Open is 207% higher calls/hr than Edge (IRR 3.07, p = 0.143)|
-|Interior vs Open|Open higher|Yes|Open is 437% higher calls/hr than Interior (IRR 5.37, p = 0.027)|
+|Edge vs Interior|Edge higher|No|Edge above Interior, but CIs overlap; p = 0.463 (IRR 1.75, ~75% higher)|
+|Edge vs Open|Open higher|No|Open above Edge, but CIs overlap; p = 0.143 (IRR 3.07, ~207% higher)|
+|Interior vs Open|Open higher|Yes|Open above Interior; CIs do not overlap Interior trend line; p = 0.027 (IRR 5.37, ~437% higher)|
 
 ---
 
@@ -239,13 +247,14 @@ These are designed for entry-level presenters. Speak clearly, keep it natural, a
 ### 11.1 30-second version
 
 This poster tests whether bat activity differs by detector placement: **interior, edge, or open**. We used a Negative Binomial GAMM with an **offset for recording hours** and a **smooth seasonal term**, plus random effects for site and detector. The key point is the **pairwise comparison** among the three habitats, not just overall activity. Our results show **Open higher than Interior (IRR 5.37, p = 0.027)**, **Edge higher than Interior but not significant (IRR 1.75, p = 0.463)**, and **Open higher than Edge but not significant (IRR 3.07, p = 0.143)**.
+This poster tests whether bat activity differs by detector placement: **interior, edge, or open**. We used a Negative Binomial GAMM with an **offset for recording hours** and a **smooth seasonal term**, plus random effects for site and detector. The key point is the **pairwise comparison** among the three habitats, not just overall activity. On the habitat effects plot, **open sits above interior** with **non-overlapping confidence intervals**, and the bracketed p-value shows **Open vs Interior, p = 0.027**. The other two comparisons overlap.
 
 ### 11.2 1-minute version
 
-We asked whether detector placement along a habitat gradient affects bat activity. The response is **total calls per night**, but we correct for unequal effort using an **offset of log(recording hours)**, and we model seasonal change with a smooth term on night. The model is a Negative Binomial GAMM with random effects for **site and detector**. The main goal is the **pairwise comparison** among **interior, edge, and open** placements, not just population-level activity. Our results show **Open higher than Interior (IRR 5.37, p = 0.027)**, **Edge higher than Interior but not significant (IRR 1.75, p = 0.463)**, and **Open higher than Edge but not significant (IRR 3.07, p = 0.143)**. In plain terms, **open habitat recorded about 437% more calls per hour than interior**, even after accounting for effort and seasonal timing.
+We asked whether detector placement along a habitat gradient affects bat activity. The response is **total calls per night**, but we correct for unequal effort using an **offset of log(recording hours)**, and we model seasonal change with a smooth term on night. The model is a Negative Binomial GAMM with random effects for **site and detector**. The main goal is the **pairwise comparison** among **interior, edge, and open** placements, not just population-level activity. On the habitat effects plot, **open is consistently above interior** and the **open confidence interval does not overlap the interior trend line**, with **Open vs Interior, p = 0.027** shown on the brackets. The temporal smooth plot shows the seasonal decline across the study window, and the habitat-by-time panels show that the pattern holds across time.
 
 ### 11.3 3-minute version
 
 This project evaluates whether bat acoustic activity changes across a habitat gradient: **interior, edge, and open** placements. We used nightly call counts, but because effort varied widely among nights, we included an **offset for recording hours** so the model estimates **calls per hour**. We also modeled seasonal change with a **penalized smooth** of night and included random effects for **detectors nested within sites**. The distribution is **Negative Binomial** to handle overdispersion.
 
-The key point is that this is not just a population activity model. The primary inference is the **pairwise comparison** among the three habitat placements. The results show **Open higher than Interior (IRR 5.37, p = 0.027)**, **Edge higher than Interior but not significant (IRR 1.75, p = 0.463)**, and **Open higher than Edge but not significant (IRR 3.07, p = 0.143)**. Put simply, **open habitat recorded about 437% more calls per hour than interior**, and that difference is model-based after controlling for effort and seasonal timing. This matters for monitoring design, because detector placement can systematically influence activity estimates.
+The key point is that this is not just a population activity model. The primary inference is the **pairwise comparison** among the three habitat placements. The habitat effects plot shows **open consistently above interior**, with the **open confidence interval not overlapping the interior trend line**, and the bracketed p-value shows **Open vs Interior, p = 0.027**. The temporal smooth confirms the seasonal decline, and the habitat-by-time panels show the same pattern across the study period. Given the late-season timing and detector malfunctions, the model is designed to preserve valid inference under imperfect field conditions. This matters for monitoring design, because detector placement can systematically influence activity estimates.
